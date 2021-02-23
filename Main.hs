@@ -40,24 +40,21 @@ main = do
     passLabel <- new Gtk.Label [#label := "Password:   "]
     #add horBox2 passLabel
 
+
     passEntry <- Gtk.entryNew
     Gtk.containerAdd horBox2 passEntry
-
+    Gtk.entrySetVisibility passEntry False 
+    
     loginBtn <- new Gtk.Button [#label := "Login"]
     #add vertBox loginBtn
 
-    userIn <- Gtk.entryGetText usernameEntry
-    passIn <- Gtk.entryGetText passEntry
+    on loginBtn #clicked $ do 
+        userIn <- Gtk.entryGetText usernameEntry
+        passIn <- Gtk.entryGetText passEntry
 
-    
-    
-                         
-
-
-
-
-    
-
+        if userIn == "benjamin" && passIn == "strandberg" then set msg [#label := "Du är inne"]
+        else set msg [#label := "Fel"]
+        
 
     #showAll win
 
