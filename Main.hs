@@ -5,8 +5,31 @@ module Main where
 
 import qualified GI.Gtk as Gtk 
 import Data.GI.Base
+import System.Environment
 
 
+
+data RhFactor = Pos | Neg 
+data ABOType = A | B | AB | O deriving (Show)
+data BloodType = BloodType ABOType RhFactor deriving (Show)
+
+
+instance Show RhFactor where
+    show Pos = "+"
+    show Neg = "-"
+
+
+donateTo :: BloodType -> BloodType -> Bool 
+donateTo _ (BloodType AB _) = True -- Kan ta emot från alla
+donateTo (BloodType O _) _ = True -- O är universal donerare
+donateTo (BloodType A _) (BloodType A _) = True 
+donateTo (BloodType B _) (BloodType B _) = True 
+donateTo _ _ = False -- Om de inte matchar är det kört 
+
+
+benjaminStrandberg = BloodType B Neg 
+
+tommyKomo = BloodType AB Pos
 
 
 
@@ -61,7 +84,7 @@ main = do
         passIn <- Gtk.entryGetText passEntry
 
         if userIn == "benjamin" && passIn == "strandberg" then do invokeMenuScreen win
-        else set msg [#label := "Fel"]
+        else set msg [#label := "Incorrect login credentials"]
         
 
     #showAll win
@@ -73,7 +96,7 @@ main = do
 invokeMenuScreen :: Gtk.Window  -> IO()
 invokeMenuScreen win = do 
     Gtk.widgetDestroy win
-
+    
     
     menuState <- new Gtk.Window [#title := "Journal System"]
 
@@ -89,20 +112,36 @@ invokeMenuScreen win = do
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
     #add vertBox horBox1
 
-    patientEntry <- Gtk.entryNew
-    Gtk.containerAdd horBox1 patientEntry
+    patient1Entry <- Gtk.entryNew
+    Gtk.containerAdd horBox1 patient1Entry
+    
+
+    patient2Entry <- Gtk.entryNew
+    Gtk.containerAdd horBox1 patient2Entry
+    
+
+    checkBtn <- new Gtk.Button [#label := "Check donation"]
+    #add vertBox checkBtn
+
+    label <- new Gtk.Label [#label := "asg"]
+    #add vertBox label
+
+    on checkBtn #clicked $ do
+
+        patient1 <- Gtk.entryGetText patient1Entry
+        patient2 <- Gtk.entryGetText patient2Entry
+
+        if patient1 == "Tommy Komo" && patient2 == "Benjamin Strandberg" then
+            if donateTo tommyKomo benjaminStrandberg then
+                set label [#label := "Tommy can donate to Benjamin"]
+            else set label [#label := "Tommy can't donate to Benjamin"]
+        else set label [#label := "The patients aren't in our database"]
+        
+        
+        
 
 
-    findRecordBtn <- new Gtk.Button [#label := "Find patient"]
-    #add horBox1 findRecordBtn
-
-    logOutBtn <- new Gtk.Button [#label := "Log out"]
-    #add vertBox logOutBtn
-
-    on logOutBtn #clicked $ do
-        #destroy menuState
-        main
-
+    
     
     #showAll menuState
 
