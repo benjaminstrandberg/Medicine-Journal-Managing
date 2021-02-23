@@ -18,6 +18,7 @@ main = do
     win <- new Gtk.Window[#title := "Journal System"]
     on win #destroy Gtk.mainQuit 
     #resize win 640 480
+    #setPosition win Gtk.WindowPositionCenter 
 
     vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
     #add win vertBox
@@ -28,7 +29,7 @@ main = do
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
     #add vertBox horBox1
 
-    nameLabel <- new Gtk.Label [#label := "Username:   "]
+    nameLabel <- new Gtk.Label [#label := "Username:  "]
     #add horBox1 nameLabel
 
     usernameEntry <- Gtk.entryNew
@@ -52,11 +53,20 @@ main = do
         userIn <- Gtk.entryGetText usernameEntry
         passIn <- Gtk.entryGetText passEntry
 
-        if userIn == "benjamin" && passIn == "strandberg" then set msg [#label := "Du är inne"]
+        if userIn == "benjamin" && passIn == "strandberg" then do invokeMenuScreen win
         else set msg [#label := "Fel"]
         
 
     #showAll win
 
     Gtk.main 
+
+
+
+invokeMenuScreen :: Gtk.Window  -> IO()
+invokeMenuScreen win = do 
+    menuState <- new Gtk.ApplicationWindow [#title := "Journal System"]
+    on menuState #destroy Gtk.mainQuit 
+    #resize menuState 640 480
+    #showAll menuState
 
