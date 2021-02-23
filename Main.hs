@@ -1,4 +1,4 @@
 module Main where
 
-main :: IO ()
-main = putStrLn "Hej svejs"
+addTwo :: Int -> Int 
+addTwo a = a + 2
