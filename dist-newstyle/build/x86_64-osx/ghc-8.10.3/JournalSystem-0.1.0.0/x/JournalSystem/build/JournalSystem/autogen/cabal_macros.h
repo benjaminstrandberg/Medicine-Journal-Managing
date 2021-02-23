@@ -22,6 +22,28 @@
   (major1) == 4 && (major2) == 14 && (minor) <= 1)
 #endif /* MIN_VERSION_base */
 
+/* package gi-gtk-3.0.36 */
+#ifndef VERSION_gi_gtk
+#define VERSION_gi_gtk "3.0.36"
+#endif /* VERSION_gi_gtk */
+#ifndef MIN_VERSION_gi_gtk
+#define MIN_VERSION_gi_gtk(major1,major2,minor) (\
+  (major1) <  3 || \
+  (major1) == 3 && (major2) <  0 || \
+  (major1) == 3 && (major2) == 0 && (minor) <= 36)
+#endif /* MIN_VERSION_gi_gtk */
+
+/* package haskell-gi-base-0.24.5 */
+#ifndef VERSION_haskell_gi_base
+#define VERSION_haskell_gi_base "0.24.5"
+#endif /* VERSION_haskell_gi_base */
+#ifndef MIN_VERSION_haskell_gi_base
+#define MIN_VERSION_haskell_gi_base(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  24 || \
+  (major1) == 0 && (major2) == 24 && (minor) <= 5)
+#endif /* MIN_VERSION_haskell_gi_base */
+
 /* tool gcc-12.0.0 */
 #ifndef TOOL_VERSION_gcc
 #define TOOL_VERSION_gcc "12.0.0"
@@ -87,6 +109,17 @@
   (major1) == 0 && (major2) <  68 || \
   (major1) == 0 && (major2) == 68 && (minor) <= 7)
 #endif /* MIN_TOOL_VERSION_hsc2hs */
+
+/* tool pkg-config-0.29.2 */
+#ifndef TOOL_VERSION_pkg_config
+#define TOOL_VERSION_pkg_config "0.29.2"
+#endif /* TOOL_VERSION_pkg_config */
+#ifndef MIN_TOOL_VERSION_pkg_config
+#define MIN_TOOL_VERSION_pkg_config(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  29 || \
+  (major1) == 0 && (major2) == 29 && (minor) <= 2)
+#endif /* MIN_TOOL_VERSION_pkg_config */
 
 /* tool runghc-8.10.3 */
 #ifndef TOOL_VERSION_runghc
