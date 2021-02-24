@@ -22,6 +22,17 @@
   (major1) == 4 && (major2) == 14 && (minor) <= 1)
 #endif /* MIN_VERSION_base */
 
+/* package directory-1.3.6.0 */
+#ifndef VERSION_directory
+#define VERSION_directory "1.3.6.0"
+#endif /* VERSION_directory */
+#ifndef MIN_VERSION_directory
+#define MIN_VERSION_directory(major1,major2,minor) (\
+  (major1) <  1 || \
+  (major1) == 1 && (major2) <  3 || \
+  (major1) == 1 && (major2) == 3 && (minor) <= 6)
+#endif /* MIN_VERSION_directory */
+
 /* package gi-gtk-3.0.36 */
 #ifndef VERSION_gi_gtk
 #define VERSION_gi_gtk "3.0.36"
@@ -32,6 +43,17 @@
   (major1) == 3 && (major2) <  0 || \
   (major1) == 3 && (major2) == 0 && (minor) <= 36)
 #endif /* MIN_VERSION_gi_gtk */
+
+/* package glib-0.13.8.1 */
+#ifndef VERSION_glib
+#define VERSION_glib "0.13.8.1"
+#endif /* VERSION_glib */
+#ifndef MIN_VERSION_glib
+#define MIN_VERSION_glib(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  13 || \
+  (major1) == 0 && (major2) == 13 && (minor) <= 8)
+#endif /* MIN_VERSION_glib */
 
 /* package haskell-gi-base-0.24.5 */
 #ifndef VERSION_haskell_gi_base

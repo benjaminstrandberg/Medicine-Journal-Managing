@@ -6,6 +6,9 @@ module Main where
 import qualified GI.Gtk as Gtk 
 import Data.GI.Base
 import System.Environment
+import System.Directory
+import System.IO
+import System.Glib.UTFString
 
 
 
@@ -126,16 +129,95 @@ invokeMenuScreen win = do
     vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
     #add menuState vertBox
 
+    qaButton <- new Gtk.Button [#label := "Quick access"]
+    #add vertBox qaButton
+
     addPatientbtn <- new Gtk.Button [#label := "Add patient"]
     #add vertBox addPatientbtn
 
     on addPatientbtn #clicked $ do
         invokeAddPatientWindow 
 
+    on qaButton #clicked $ do
+        invokeQAWindow
+
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
     #add vertBox horBox1
     
     #showAll menuState
+
+
+invokeQAWindow :: IO()
+invokeQAWindow = do
+    qaWindow <- new Gtk.Window [#title := "Journal System"]
+
+    #resize qaWindow 320 240
+    #setPosition qaWindow Gtk.WindowPositionCenter 
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add qaWindow vertBox
+
+    label <- new Gtk.Label [#label := " "]
+    #add vertBox label
+
+    fNameEntry <- Gtk.entryNew 
+    #add vertBox fNameEntry
+
+    lNameEntry <- Gtk.entryNew 
+    #add vertBox lNameEntry
+
+    info <- Gtk.entryNew 
+    #add vertBox info
+
+    confirmBtn <- new Gtk.Button [#label := "Search"]
+    #add vertBox confirmBtn
+
+    
+
+    on confirmBtn #clicked $ do
+        f <- Gtk.entryGetText fNameEntry
+        l <- Gtk.entryGetText lNameEntry
+
+
+        let filename = glibToString f ++ glibToString l ++ ".txt"
+        exist <- doesFileExist filename
+        if not exist then set label [#label := "The patient is not in our records"]
+        else do
+            journal <- openFile filename ReadMode
+            hasLine <- hIsEOF journal
+            content <- if not hasLine
+                            then hGetContents journal
+                            else return "empty"
+            i <- Gtk.entryGetText info
+            let contentF = lines content
+
+            let index | i == "age" = "3"
+                      | i == "gender" = "4"
+                      | i == "height" = "5"
+                      | i == "weight" = "6"
+                      | i == "bloodtype" = "7"
+                      | otherwise = "null"
+            
+            let outPut = searchList contentF index
+            print outPut
+
+            set label [#label := stringToGlib outPut]
+            hClose journal
+
+
+    #showAll qaWindow
+   
+        
+
+
+searchList :: [String] -> String -> String 
+searchList [] _ = "This info doesn't exist in this system."
+searchList l@(x:xs) y | y == [head x] = drop 1 x
+                      | otherwise = searchList xs y
+        
+    
+
+
+
 
 
 invokeAddPatientWindow :: IO()
@@ -228,8 +310,8 @@ invokeAddPatientWindow = do
         w <- Gtk.entryGetText weight
         b <- Gtk.entryGetText bloodType
 
-        let fileName = show f ++ show l ++ ".txt"
-        let text = show f ++ "\n" ++ show l ++ "\n" ++ show a ++ "\n" ++ show g ++ "\n" ++ show h ++ "\n" ++ show w ++ "\n" ++ show b
+        let fileName = glibToString f ++ glibToString l ++ ".txt" 
+        let text = "1" ++ glibToString f ++ "\n" ++ "2" ++ glibToString l ++ "\n" ++ "3" ++ glibToString a ++ "\n" ++ "4" ++ glibToString g ++ "\n" ++ "5" ++ glibToString h ++ "\n" ++ "6" ++ glibToString w ++ "\n" ++ "7" ++ glibToString b
 
         writeFile fileName text
 
