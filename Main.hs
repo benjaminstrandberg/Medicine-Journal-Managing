@@ -7,9 +7,8 @@ import qualified GI.Gtk as Gtk
 import Data.GI.Base
 import System.Environment
 import System.Directory
-import System.IO
+import System.IO ( hClose, hIsEOF, openFile, hGetContents, IOMode(ReadMode) )
 import System.Glib.UTFString
-
 
 
 data RhFactor = Pos | Neg 
@@ -38,15 +37,13 @@ donateTo (BloodType A _) (BloodType A _) = True
 donateTo (BloodType B _) (BloodType B _) = True 
 donateTo _ _ = False -- Om de inte matchar är det kört 
 
-bmi :: Double -> Double -> (Double, String)
-bmi v l | bmiCalculator v l >= 30 = (bmiCalculator v l,"Svår övervikt")
-        | bmiCalculator v l < 30 && bmiCalculator v l > 25 = (bmiCalculator v l, "Övervikt")
-        | bmiCalculator v l < 25 && bmiCalculator v l > 18.5 = (bmiCalculator v l, "Normalvikt")
-        | otherwise = (bmiCalculator v l, "Undervikt")
-
-
-bmiCalculator :: Double -> Double -> Double
-bmiCalculator v l = v / (l * l)
+bmi :: Double -> Double -> (Int, String)
+bmi v l | x >= 30 = (round x,"Obese")
+        | x < 30 && x > 25 = (round x, "Overweight")
+        | x < 25 && x > 18.5 = (round x, "Normal weight")
+        | otherwise = (round x, "Underweight")
+            where
+                x = v / (l * l)
 
 benjaminStrandberg = BloodType B Neg 
 
@@ -85,7 +82,6 @@ main = do
     passLabel <- new Gtk.Label [#label := "Password:   "]
     #add horBox2 passLabel
 
-
     passEntry <- Gtk.entryNew
     Gtk.containerAdd horBox2 passEntry
     Gtk.entrySetVisibility passEntry False 
@@ -118,8 +114,6 @@ invokeMenuScreen :: Gtk.Window  -> IO()
 invokeMenuScreen win = do 
     #destroy win
     
-    
-    
     menuState <- new Gtk.Window [#title := "Journal System"]
 
     #resize menuState 640 480
@@ -132,14 +126,34 @@ invokeMenuScreen win = do
     qaButton <- new Gtk.Button [#label := "Quick access"]
     #add vertBox qaButton
 
+    getRecordBtn <- new Gtk.Button [#label := "Open record"]
+    #add vertBox getRecordBtn
+
     addPatientbtn <- new Gtk.Button [#label := "Add patient"]
     #add vertBox addPatientbtn
+
+    bmiCalcBtn <- new Gtk.Button [#label := "BMI Calculator"]
+    #add vertBox bmiCalcBtn
+
+    donationCalcBtn <- new Gtk.Button [#label := "Blood Donation Calculator"]
+    #add vertBox donationCalcBtn
+
 
     on addPatientbtn #clicked $ do
         invokeAddPatientWindow 
 
     on qaButton #clicked $ do
         invokeQAWindow
+
+    on getRecordBtn #clicked $ do
+        openRecordWindow
+
+    on bmiCalcBtn #clicked $ do
+        invokeBmiCalcWin
+
+    on donationCalcBtn #clicked $ do 
+        invokeBTCalcWin
+    
 
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
     #add vertBox horBox1
@@ -156,29 +170,36 @@ invokeQAWindow = do
     vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
     #add qaWindow vertBox
 
-    label <- new Gtk.Label [#label := " "]
-    #add vertBox label
+    horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox1
+    
+    horBox2 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox2
 
-    fNameEntry <- Gtk.entryNew 
-    #add vertBox fNameEntry
+    label1 <- new Gtk.Label [#label := "Patient: "]
+    #add horBox1 label1
 
-    lNameEntry <- Gtk.entryNew 
-    #add vertBox lNameEntry
+    label2 <- new Gtk.Label [#label := "Info:       "]
+    #add horBox2 label2
+
+    patientEntry <- Gtk.entryNew 
+    #add horBox1 patientEntry
 
     info <- Gtk.entryNew 
-    #add vertBox info
+    #add horBox2 info
 
     confirmBtn <- new Gtk.Button [#label := "Search"]
     #add vertBox confirmBtn
 
+    label <- new Gtk.Label [#label := " "]
+    #add vertBox label
+
     
 
     on confirmBtn #clicked $ do
-        f <- Gtk.entryGetText fNameEntry
-        l <- Gtk.entryGetText lNameEntry
-
-
-        let filename = glibToString f ++ glibToString l ++ ".txt"
+        name <- Gtk.entryGetText patientEntry
+        
+        let filename = filter ( /= ' ') $ glibToString name ++ ".txt"
         exist <- doesFileExist filename
         if not exist then set label [#label := "The patient is not in our records"]
         else do
@@ -195,6 +216,7 @@ invokeQAWindow = do
                       | i == "height" = "5"
                       | i == "weight" = "6"
                       | i == "bloodtype" = "7"
+                      | i == "bmi" = "8"
                       | otherwise = "null"
             
             let outPut = searchList contentF index
@@ -211,8 +233,8 @@ invokeQAWindow = do
 
 searchList :: [String] -> String -> String 
 searchList [] _ = "This info doesn't exist in this system."
-searchList l@(x:xs) y | y == [head x] = drop 1 x
-                      | otherwise = searchList xs y
+searchList (x:xs) y | y == [head x] = drop 1 x
+                    | otherwise = searchList xs y
         
     
 
@@ -229,7 +251,6 @@ invokeAddPatientWindow = do
     #resize addWindow 320 240
     #setPosition addWindow Gtk.WindowPositionCenter 
     
-
     vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
     #add addWindow vertBox
 
@@ -310,14 +331,174 @@ invokeAddPatientWindow = do
         w <- Gtk.entryGetText weight
         b <- Gtk.entryGetText bloodType
 
+        let height = read (glibToString h) :: Double
+        let weight = read (glibToString w) :: Double
+        let bmiCalc = bmi weight height 
+
         let fileName = glibToString f ++ glibToString l ++ ".txt" 
-        let text = "1" ++ glibToString f ++ "\n" ++ "2" ++ glibToString l ++ "\n" ++ "3" ++ glibToString a ++ "\n" ++ "4" ++ glibToString g ++ "\n" ++ "5" ++ glibToString h ++ "\n" ++ "6" ++ glibToString w ++ "\n" ++ "7" ++ glibToString b
+        let text = "1" ++ glibToString f ++ "\n" ++ "2" ++ glibToString l ++ "\n" ++ "3" ++ glibToString a ++ "\n" ++ "4" ++ 
+                    glibToString g ++ "\n" ++ "5" ++ glibToString h ++ "\n" ++ "6" ++ glibToString w ++ "\n" ++ "7" ++ glibToString b ++ "\n" ++ "8" ++ show bmiCalc
 
         writeFile fileName text
 
         #destroy addWindow
     #showAll addWindow
     
+
+openRecordWindow :: IO()
+openRecordWindow = do
+    openRecordWin <- new Gtk.Window [#title := "Journal System"]
+    #resize openRecordWin 320 240
+    #setPosition openRecordWin Gtk.WindowPositionCenter 
+        
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add openRecordWin vertBox
+
+    horBox <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox
+
+    label <- new Gtk.Label [#label := "Patient: "]
+    #add horBox label
+        
+    patientEntry <- Gtk.entryNew 
+    Gtk.containerAdd horBox patientEntry
+
+    searchBtn <- new Gtk.Button [#label := "Open"]
+    #add vertBox searchBtn
+
+    out <- new Gtk.Label [#label := " "]
+    #add vertBox out
+
+    on searchBtn #clicked $ do
+        patientEntry <- Gtk.entryGetText patientEntry
+        let filename = filter ( /= ' ') $ glibToString patientEntry ++ ".txt"
+        exist <- doesFileExist filename
+        
+        if not exist then set out [#label := "The patient is not in our records"]
+        else do
+            journal <- openFile filename ReadMode
+            hasLine <- hIsEOF journal
+            content <- if not hasLine
+                            then hGetContents journal
+                            else return "empty"
+            let contentF = formatFile $ lines content
+        
+            let output = unlines contentF
+
+            set out [#label := stringToGlib output]
+            hClose journal
+
+
+
+    #showAll openRecordWin
+
+formatFile :: [String] -> [String]
+formatFile [] = []
+formatFile (x:xs) | head x == '1' = ("First name: " ++ drop 1 x) : formatFile xs
+                  | head x == '2' = ("Last name: " ++ drop 1 x) : formatFile xs
+                  | head x == '3' = ("Age: " ++ drop 1 x) : formatFile xs
+                  | head x == '4' = ("Gender: " ++ drop 1 x) : formatFile xs
+                  | head x == '5' = ("Height: " ++ drop 1 x ++ " m") : formatFile xs
+                  | head x == '6' = ("Weight: " ++ drop 1 x ++ " kg") : formatFile xs
+                  | head x == '7' = ("Blood type: " ++ drop 1 x) : formatFile xs
+                  
+
+
+invokeBmiCalcWin :: IO()
+invokeBmiCalcWin = do
+    bmiCalcWin <- new Gtk.Window [#title := "Journal System"]
+    #resize bmiCalcWin 320 240
+    #setPosition bmiCalcWin Gtk.WindowPositionCenter 
+        
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add bmiCalcWin vertBox
+
+    horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add vertBox horBox1
+
+    horBox2 <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add vertBox horBox2
+
+    label1 <- new Gtk.Label [#label := "Height (m): "]
+    #add horBox1 label1
+    
+    label2 <- new Gtk.Label [#label := "Weight (kg): "]
+    #add horBox2 label2
+
+    heightEntry <- Gtk.entryNew
+    #add horBox1 heightEntry
+
+    weightEntry <- Gtk.entryNew
+    #add horBox2 weightEntry
+
+    calcBtn <- new Gtk.Button [#label := "Calculate"]
+    #add vertBox calcBtn
+
+    label3 <- new Gtk.Label [#label := " "]
+    #add vertBox label3 
+
+    on calcBtn #clicked $ do
+        h <- Gtk.entryGetText heightEntry
+        w <- Gtk.entryGetText weightEntry
+
+        let height = read (glibToString h) :: Double
+        let weight = read (glibToString w) :: Double
+        let bmiCalc = bmi weight height 
+        
+        set label3 [#label := stringToGlib $ show bmiCalc]
+
+    #showAll bmiCalcWin
+
+invokeBTCalcWin :: IO()
+invokeBTCalcWin = do
+    btCalcWin <- new Gtk.Window [#title := "Journal System"]
+    #resize btCalcWin 320 240
+    #setPosition btCalcWin Gtk.WindowPositionCenter 
+        
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add btCalcWin vertBox
+
+    horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add vertBox horBox1
+
+    horBox2 <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add vertBox horBox2
+
+    label1 <- new Gtk.Label [#label := "Blood type 1/Patient 1"]
+    #add horBox1 label1
+    
+    label2 <- new Gtk.Label [#label := "Blood type 2/Patient 2"]
+    #add horBox2 label2
+
+    heightEntry <- Gtk.entryNew
+    #add horBox1 heightEntry
+
+    weightEntry <- Gtk.entryNew
+    #add horBox2 weightEntry
+
+    calcBtn <- new Gtk.Button [#label := "Calculate"]
+    #add vertBox calcBtn
+
+    label3 <- new Gtk.Label [#label := " "]
+    #add vertBox label3 
+
+    
+
+    #showAll btCalcWin
+
+
+        
+
+
+
+
+    
+
+
+                
+
+
+
     
 
     

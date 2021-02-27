@@ -1,0 +1,8 @@
+1Egon
+2Svensson
+345
+4Male
+52.30
+6120
+7AB pos
+8(23,"Normal weight")
