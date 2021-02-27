@@ -11,31 +11,13 @@ import System.IO ( hClose, hIsEOF, openFile, hGetContents, IOMode(ReadMode) )
 import System.Glib.UTFString
 
 
-data RhFactor = Pos | Neg 
-data ABOType = A | B | AB | O deriving (Show)
-data BloodType = BloodType ABOType RhFactor deriving (Show)
+donate :: String -> String -> Bool 
+donate _ "AB" = True 
+donate "O" _ = True 
+donate "A" "A" = True 
+donate "B" "B" = True 
+donate _ _ = False 
 
-
-instance Show RhFactor where
-    show Pos = "+"
-    show Neg = "-"
-
---                     FName  LName Gender Age Height Weight BT  
-data Patient = Patient {firstName :: String,
-                        lastName :: String,
-                        age :: Int, 
-                        gender :: String,
-                        height :: Double,
-                        weight :: Double,
-                        bloodType :: BloodType} deriving (Show)
-
-
-donateTo :: BloodType -> BloodType -> Bool 
-donateTo _ (BloodType AB _) = True -- Kan ta emot från alla
-donateTo (BloodType O _) _ = True -- O är universal donerare
-donateTo (BloodType A _) (BloodType A _) = True 
-donateTo (BloodType B _) (BloodType B _) = True 
-donateTo _ _ = False -- Om de inte matchar är det kört 
 
 bmi :: Double -> Double -> (Int, String)
 bmi v l | x >= 30 = (round x,"Obese")
@@ -44,12 +26,6 @@ bmi v l | x >= 30 = (round x,"Obese")
         | otherwise = (round x, "Underweight")
             where
                 x = v / (l * l)
-
-benjaminStrandberg = BloodType B Neg 
-
-tommyKomo = BloodType AB Pos
-
-
 
 
 main :: IO()
@@ -400,7 +376,8 @@ formatFile (x:xs) | head x == '1' = ("First name: " ++ drop 1 x) : formatFile xs
                   | head x == '4' = ("Gender: " ++ drop 1 x) : formatFile xs
                   | head x == '5' = ("Height: " ++ drop 1 x ++ " m") : formatFile xs
                   | head x == '6' = ("Weight: " ++ drop 1 x ++ " kg") : formatFile xs
-                  | head x == '7' = ("Blood type: " ++ drop 1 x) : formatFile xs
+                  | head x == '7' = ("BloodType: " ++ drop 1 x) : formatFile xs
+                  | head x == '8' = ("BMI: " ++ drop 1 x) : formatFile xs
                   
 
 
@@ -470,11 +447,11 @@ invokeBTCalcWin = do
     label2 <- new Gtk.Label [#label := "Blood type 2/Patient 2"]
     #add horBox2 label2
 
-    heightEntry <- Gtk.entryNew
-    #add horBox1 heightEntry
+    patient1Entry <- Gtk.entryNew
+    #add horBox1 patient1Entry
 
-    weightEntry <- Gtk.entryNew
-    #add horBox2 weightEntry
+    patient2Entry <- Gtk.entryNew
+    #add horBox2 patient2Entry
 
     calcBtn <- new Gtk.Button [#label := "Calculate"]
     #add vertBox calcBtn
@@ -482,9 +459,47 @@ invokeBTCalcWin = do
     label3 <- new Gtk.Label [#label := " "]
     #add vertBox label3 
 
-    
+    on calcBtn #clicked $ do 
+        pat1 <- Gtk.entryGetText patient1Entry
+        pat2 <- Gtk.entryGetText patient2Entry
+
+        let filename = filter ( /= ' ') $ glibToString pat1 ++ ".txt"
+        let filename2 = filter ( /= ' ') $ glibToString pat2 ++ ".txt"
+        
+        patient1 <- getRowFromFile filename
+        patient2 <- getRowFromFile filename2
+
+        if patient1 == "empty" then
+            set label3 [#label := "Patient 1 is not in our records"]
+        else if patient2 == "empty" then
+            set label3 [#label := "Patient 2 is not in our records"]
+        else do
+            let donateResult = donate (strip patient1) (strip patient2)
+                            where strip = filter(\x -> x == 'A' || x == 'B' || x == 'O')
+
+            let print | donateResult = "Patient 1 can donate to Patient 2"
+                      | otherwise = "Patient 1 can't donate to Patient 2"
+            set label3 [#label := stringToGlib print ]
+
 
     #showAll btCalcWin
+
+
+getRowFromFile :: String -> IO String
+getRowFromFile filename = do 
+    exist <- doesFileExist filename
+    if not exist then return "empty"
+        else do
+            journal <- openFile filename ReadMode
+            hasLine <- hIsEOF journal
+            content <- if not hasLine
+                            then hGetContents journal
+                            else return "empty"
+            let contentF = lines content
+            
+            let outPut = searchList contentF "7"
+            return outPut
+
 
 
         
