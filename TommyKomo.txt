@@ -2,6 +2,8 @@
 2Komo
 321
 4Male
-51.90
+51.89
 680
-7A pos
+7B neg
+8(22,"Normal weight")
+93292

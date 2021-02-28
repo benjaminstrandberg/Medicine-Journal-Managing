@@ -7,8 +7,9 @@ import qualified GI.Gtk as Gtk
 import Data.GI.Base
 import System.Environment
 import System.Directory
-import System.IO ( hClose, hIsEOF, openFile, hGetContents, IOMode(ReadMode) )
+import System.IO ( hClose, hIsEOF, openFile, hGetContents, IOMode(ReadMode, WriteMode), IOMode(WriteMode) )
 import System.Glib.UTFString
+import Data.Char
 
 
 donate :: String -> String -> Bool 
@@ -27,6 +28,17 @@ bmi v l | x >= 30 = (round x,"Obese")
             where
                 x = v / (l * l)
 
+tdeeCalculator :: Double -> Double -> Double -> String -> Int -> Double
+tdeeCalculator weight height age sex exercisefrequency = bmr * frequencyQuota
+        where bmr 
+                | sex == "Male" = (10 * weight) + (6.25 * (height*100)) - (5 * age) + 5 
+                | otherwise = (10 * weight) + (6.25 * (height*100)) - (5 * age) -161
+              frequencyQuota 
+                | exercisefrequency == 0 = 1.2
+                | exercisefrequency < 3 = 1.37
+                | exercisefrequency < 6 = 1.55
+                | exercisefrequency < 8 = 1.75
+                | otherwise = 1.9
 
 main :: IO()
 main = do
@@ -111,9 +123,17 @@ invokeMenuScreen win = do
     bmiCalcBtn <- new Gtk.Button [#label := "BMI Calculator"]
     #add vertBox bmiCalcBtn
 
+    tdeeCalcBtn <- new Gtk.Button [#label := "TDEE Calculator"]
+    #add vertBox tdeeCalcBtn
+
     donationCalcBtn <- new Gtk.Button [#label := "Blood Donation Calculator"]
     #add vertBox donationCalcBtn
 
+    additionalBtn <- new Gtk.Button [#label := "Add TDEE"]
+    #add vertBox additionalBtn
+
+    deleteRecord <- new Gtk.Button [#label := "Delete record"]
+    #add vertBox deleteRecord
 
     on addPatientbtn #clicked $ do
         invokeAddPatientWindow 
@@ -129,6 +149,15 @@ invokeMenuScreen win = do
 
     on donationCalcBtn #clicked $ do 
         invokeBTCalcWin
+
+    on additionalBtn #clicked $ do
+        invokeTdeeAddWin
+    
+    on deleteRecord #clicked $ do
+        invokeDeleteWin
+    
+    on tdeeCalcBtn #clicked $ do
+        invokeTdeeCalcWin
     
 
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
@@ -193,6 +222,7 @@ invokeQAWindow = do
                       | i == "weight" = "6"
                       | i == "bloodtype" = "7"
                       | i == "bmi" = "8"
+                      | i == "tdee" = "9"
                       | otherwise = "null"
             
             let outPut = searchList contentF index
@@ -213,9 +243,6 @@ searchList (x:xs) y | y == [head x] = drop 1 x
                     | otherwise = searchList xs y
         
     
-
-
-
 
 
 invokeAddPatientWindow :: IO()
@@ -342,8 +369,10 @@ openRecordWindow = do
     searchBtn <- new Gtk.Button [#label := "Open"]
     #add vertBox searchBtn
 
+    box <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add vertBox box
     out <- new Gtk.Label [#label := " "]
-    #add vertBox out
+    #add box out
 
     on searchBtn #clicked $ do
         patientEntry <- Gtk.entryGetText patientEntry
@@ -378,9 +407,8 @@ formatFile (x:xs) | head x == '1' = ("First name: " ++ drop 1 x) : formatFile xs
                   | head x == '6' = ("Weight: " ++ drop 1 x ++ " kg") : formatFile xs
                   | head x == '7' = ("BloodType: " ++ drop 1 x) : formatFile xs
                   | head x == '8' = ("BMI: " ++ drop 1 x) : formatFile xs
+                  | head x == '9' = ("Total daily energy expenditure: " ++ drop 1 x ++ " kcal") : formatFile xs
                   
-
-
 invokeBmiCalcWin :: IO()
 invokeBmiCalcWin = do
     bmiCalcWin <- new Gtk.Window [#title := "Journal System"]
@@ -456,37 +484,57 @@ invokeBTCalcWin = do
     calcBtn <- new Gtk.Button [#label := "Calculate"]
     #add vertBox calcBtn
 
+    modeBtn <- new Gtk.Button [#label := "Patient Mode"]
+    #add vertBox modeBtn
+
     label3 <- new Gtk.Label [#label := " "]
     #add vertBox label3 
+
+
+    on modeBtn #clicked $ do
+        text <- Gtk.buttonGetLabel modeBtn
+        if text == "Patient Mode" then
+            set modeBtn [#label := "Bloodtype Mode"]
+        else 
+            set modeBtn [#label := "Patient Mode"]
 
     on calcBtn #clicked $ do 
         pat1 <- Gtk.entryGetText patient1Entry
         pat2 <- Gtk.entryGetText patient2Entry
+        mode <- Gtk.buttonGetLabel modeBtn
 
-        let filename = filter ( /= ' ') $ glibToString pat1 ++ ".txt"
-        let filename2 = filter ( /= ' ') $ glibToString pat2 ++ ".txt"
         
-        patient1 <- getRowFromFile filename
-        patient2 <- getRowFromFile filename2
 
-        if patient1 == "empty" then
-            set label3 [#label := "Patient 1 is not in our records"]
-        else if patient2 == "empty" then
-            set label3 [#label := "Patient 2 is not in our records"]
+        if mode == "Patient Mode" then do
+            let filename = filter ( /= ' ') $ glibToString pat1 ++ ".txt"
+            let filename2 = filter ( /= ' ') $ glibToString pat2 ++ ".txt"
+
+            patient1 <- getRowFromFile filename "7"
+            patient2 <- getRowFromFile filename2 "7"
+    
+            if patient1 == "empty" && patient2 == "empty" then
+                set label3 [#label := "These patients are not in our records."]
+            else if patient1 == "empty" then 
+                set label3 [#label := stringToGlib  $ glibToString pat1 ++ " is not in our records"]
+            else if patient2 == "empty" then
+                set label3 [#label := stringToGlib  $ glibToString pat2 ++ " is not in our records"]
+            else do
+                let donateResult = donate (strip patient1) (strip patient2)
+                                where strip = filter(\x -> x == 'A' || x == 'B' || x == 'O')
+
+                let print | donateResult = "Patient 1 can donate to Patient 2"
+                          | otherwise = "Patient 1 can't donate to Patient 2"
+                set label3 [#label := stringToGlib print ]
         else do
-            let donateResult = donate (strip patient1) (strip patient2)
+            let donateResult = donate (strip $ glibToString pat1) (strip $ glibToString pat2)
                             where strip = filter(\x -> x == 'A' || x == 'B' || x == 'O')
-
             let print | donateResult = "Patient 1 can donate to Patient 2"
-                      | otherwise = "Patient 1 can't donate to Patient 2"
+                          | otherwise = "Patient 1 can't donate to Patient 2"
             set label3 [#label := stringToGlib print ]
-
-
     #showAll btCalcWin
 
-
-getRowFromFile :: String -> IO String
-getRowFromFile filename = do 
+getRowFromFile :: String -> String -> IO String
+getRowFromFile filename index = do 
     exist <- doesFileExist filename
     if not exist then return "empty"
         else do
@@ -497,8 +545,171 @@ getRowFromFile filename = do
                             else return "empty"
             let contentF = lines content
             
-            let outPut = searchList contentF "7"
+            let outPut = searchList contentF index
             return outPut
+
+
+invokeTdeeAddWin :: IO()
+invokeTdeeAddWin = do
+    win <- new Gtk.Window [#title := "Journal System"]
+    #resize win 320 240
+    #setPosition win Gtk.WindowPositionCenter 
+
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add win vertBox
+
+    label1 <- new Gtk.Label [#label := "Patient: "]
+    #add vertBox label1
+
+    patientEntry <- Gtk.entryNew 
+    #add vertBox patientEntry
+
+    label2 <- new Gtk.Label [#label := "Amount of workouts per week"]
+    #add vertBox label2
+
+    workOutEntry <- Gtk.entryNew 
+    #add vertBox workOutEntry
+
+    addBtn <- new Gtk.Button [#label := "Add tdee"]
+    #add vertBox addBtn
+
+    on addBtn #clicked $ do
+        patient <- Gtk.entryGetText patientEntry
+        let filename = filter ( /= ' ') $ glibToString patient ++ ".txt"
+
+        weight <- getRowFromFile filename "6"
+        height <- getRowFromFile filename "5"
+        age <- getRowFromFile filename "3"
+        sex <- getRowFromFile filename "4"
+
+    
+        freq <- Gtk.entryGetText workOutEntry
+
+        let tdeeVal = round $ tdeeCalculator (read weight :: Double) (read height :: Double) (read age :: Double) sex (read $ glibToString freq :: Int)
+        let append = "\n9" ++ show tdeeVal
+        
+        journal <- openFile filename ReadMode
+        hasLine <- hIsEOF journal
+        content <- if not hasLine
+                        then hGetContents journal
+                    else return "empty"
+        delete filename
+        writeFile filename (content ++ append)
+        hClose journal
+        
+        #destroy win
+    #showAll win
+
+invokeTdeeCalcWin :: IO()
+invokeTdeeCalcWin= do
+    win <- new Gtk.Window [#title := "Journal System"]
+
+    #resize win 320 240
+    #setPosition win Gtk.WindowPositionCenter 
+    
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add win vertBox
+
+    horBox3 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox3
+
+    horBox4 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox4
+
+    horBox5 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox5
+
+    horBox6 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox6
+
+    horBox7 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
+    #add vertBox horBox7
+
+    ageLabel <- new Gtk.Label   [#label := "Age:             "]
+    #add horBox3 ageLabel
+
+    gLabel <- new Gtk.Label     [#label := "Gender:      "]
+    #add horBox4 gLabel
+
+    hLabel <- new Gtk.Label     [#label := "Height:        "]
+    #add horBox5 hLabel
+
+    wLabel <- new Gtk.Label     [#label := "Weight:       "]
+    #add horBox6 wLabel
+
+    wpwLabel <- new Gtk.Label     [#label := "Workouts per week:       "]
+    #add horBox7 wpwLabel
+
+    age <- Gtk.entryNew 
+    Gtk.containerAdd horBox3 age
+
+    gender <- Gtk.entryNew 
+    Gtk.containerAdd horBox4 gender
+
+    height <- Gtk.entryNew 
+    Gtk.containerAdd horBox5 height
+
+    weight <- Gtk.entryNew 
+    Gtk.containerAdd horBox6 weight
+
+    wpw <- Gtk.entryNew 
+    Gtk.containerAdd horBox7 wpw
+
+    calcBtn <- new Gtk.Button [#label := "Calculate Tdee"]
+    #add vertBox calcBtn
+
+    oLabel <- new Gtk.Label [#label := " "]
+    #add vertBox oLabel
+
+    on calcBtn #clicked $ do
+        a <- Gtk.entryGetText age
+        g <- Gtk.entryGetText gender
+        h <- Gtk.entryGetText height
+        w <- Gtk.entryGetText weight
+        wpw <- Gtk.entryGetText wpw
+
+        let g' | glibToString g == "male" = "Male"
+               | glibToString g == "female" = "Female"
+        
+
+        let tdeeVal = round $ tdeeCalculator (read $ glibToString w :: Double) (read $ glibToString h :: Double) (read $ glibToString a :: Double) g' (read $ glibToString wpw :: Int)
+        set oLabel [#label := stringToGlib $ show tdeeVal ++ " kcal per day"]
+
+        
+    #showAll win
+        
+
+invokeDeleteWin :: IO()
+invokeDeleteWin = do
+    win <- new Gtk.Window [#title := "Journal System"]
+    #resize win 320 240
+    #setPosition win Gtk.WindowPositionCenter 
+
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add win vertBox
+
+    label1 <- new Gtk.Label [#label := "Patient: "]
+    #add vertBox label1
+
+    patientEntry <- Gtk.entryNew 
+    #add vertBox patientEntry
+
+    delBtn <- new Gtk.Button [#label := "Delete"]
+    #add vertBox delBtn
+
+    on delBtn #clicked $ do
+        patient <- Gtk.entryGetText patientEntry
+        let filename = filter ( /= ' ') $ glibToString patient ++ ".txt"
+
+        delete filename
+        #destroy win
+    #showAll win
+
+delete :: String -> IO ()
+delete file = do
+    exists <- doesFileExist file
+    if exists then removeFile file
+    else putStrLn "file does not exist"
 
 
 

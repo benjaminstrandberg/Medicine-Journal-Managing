@@ -1,7 +1,8 @@
-1Lukas 
+1Lukas
 2Radmann
 320
 4Male
 51.85
 673
-7A pos
+7AB pos
+8(21,"Normal weight")
