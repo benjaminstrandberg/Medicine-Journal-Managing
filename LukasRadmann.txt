@@ -1,8 +1,9 @@
 1Lukas
 2Radmann
-320
+321
 4Male
-51.85
-673
+52.05
+6120
 7AB pos
-8(21,"Normal weight")
+8(29,"Overweight")
+94167

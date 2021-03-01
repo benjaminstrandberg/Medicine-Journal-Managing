@@ -1,8 +1,9 @@
 1Edvin
 2Hedman
-321
+340
 4Female
-52.05
+52.20
 650
 7O pos
-8(12,"Underweight")
+8(10,"Underweight")
+92877

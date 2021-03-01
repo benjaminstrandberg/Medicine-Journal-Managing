@@ -6,4 +6,4 @@
 680
 7B neg
 8(22,"Normal weight")
-93292
+92258

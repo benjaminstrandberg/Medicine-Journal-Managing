@@ -9,7 +9,7 @@ import System.Environment
 import System.Directory
 import System.IO ( hClose, hIsEOF, openFile, hGetContents, IOMode(ReadMode, WriteMode), IOMode(WriteMode) )
 import System.Glib.UTFString
-import Data.Char
+
 
 
 donate :: String -> String -> Bool 
@@ -20,6 +20,12 @@ donate "B" "B" = True
 donate _ _ = False 
 
 
+{-  bmi weight height
+    Calculates Body Mass Index "BMI" to tell which weight-class a person belongs to.
+    PRE: The arguments can't be smaller than 0.
+    RETURNS: A tuple pair with the BMI score in the fst position and a description of the result in the snd position.
+    EXAMPLES:   bmi 70 1.90 == (19,"Normal Weight")
+-}
 bmi :: Double -> Double -> (Int, String)
 bmi v l | x >= 30 = (round x,"Obese")
         | x < 30 && x > 25 = (round x, "Overweight")
@@ -28,6 +34,13 @@ bmi v l | x >= 30 = (round x,"Obese")
             where
                 x = v / (l * l)
 
+{-  tdeeCalculator weight height age sex exercisefrequency 
+    Calculates the total daily energy expenditure "TDEE"
+    PRE: All of the arguments that are doubles or ints can't be smaller than 0.
+    RETURNS: Rougly the amount of calories the person burns in a day as a double.
+    EXAMPLES:   tdeeCalculator 80 1.90 21 "Male" 7 == 3303.125
+                tdeeCalculator 70 1.70 20 "Female" 6 == 2627.625
+-}
 tdeeCalculator :: Double -> Double -> Double -> String -> Int -> Double
 tdeeCalculator weight height age sex exercisefrequency = bmr * frequencyQuota
         where bmr 
@@ -82,8 +95,6 @@ main = do
 
     on exitBtn #clicked Gtk.mainQuit 
 
-    
-
     on loginBtn #clicked $ do 
         userIn <- Gtk.entryGetText usernameEntry
         passIn <- Gtk.entryGetText passEntry
@@ -135,6 +146,9 @@ invokeMenuScreen win = do
     deleteRecord <- new Gtk.Button [#label := "Delete record"]
     #add vertBox deleteRecord
 
+    changeRecord <- new Gtk.Button [#label := "Edit record"]
+    #add vertBox changeRecord
+
     on addPatientbtn #clicked $ do
         invokeAddPatientWindow 
 
@@ -158,6 +172,9 @@ invokeMenuScreen win = do
     
     on tdeeCalcBtn #clicked $ do
         invokeTdeeCalcWin
+
+    on changeRecord #clicked $ do
+        invokeChangeWin
     
 
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
@@ -205,33 +222,10 @@ invokeQAWindow = do
         name <- Gtk.entryGetText patientEntry
         
         let filename = filter ( /= ' ') $ glibToString name ++ ".txt"
-        exist <- doesFileExist filename
-        if not exist then set label [#label := "The patient is not in our records"]
-        else do
-            journal <- openFile filename ReadMode
-            hasLine <- hIsEOF journal
-            content <- if not hasLine
-                            then hGetContents journal
-                            else return "empty"
-            i <- Gtk.entryGetText info
-            let contentF = lines content
-
-            let index | i == "age" = "3"
-                      | i == "gender" = "4"
-                      | i == "height" = "5"
-                      | i == "weight" = "6"
-                      | i == "bloodtype" = "7"
-                      | i == "bmi" = "8"
-                      | i == "tdee" = "9"
-                      | otherwise = "null"
-            
-            let outPut = searchList contentF index
-            print outPut
-
-            set label [#label := stringToGlib outPut]
-            hClose journal
-
-
+        i <- Gtk.entryGetText info
+        outPut <- getRowFromFile filename (glibToString i)
+        set label [#label := stringToGlib outPut]
+       
     #showAll qaWindow
    
         
@@ -242,8 +236,6 @@ searchList [] _ = "This info doesn't exist in this system."
 searchList (x:xs) y | y == [head x] = drop 1 x
                     | otherwise = searchList xs y
         
-    
-
 
 invokeAddPatientWindow :: IO()
 invokeAddPatientWindow = do
@@ -533,8 +525,19 @@ invokeBTCalcWin = do
             set label3 [#label := stringToGlib print ]
     #showAll btCalcWin
 
+convertIndex :: String -> String 
+convertIndex i| i == "age" = "3"
+              | i == "gender" = "4"
+              | i == "height" = "5"
+              | i == "weight" = "6"
+              | i == "bloodtype" = "7"
+              | i == "bmi" = "8"
+              | i == "tdee" = "9"
+              | otherwise = "null"
+
 getRowFromFile :: String -> String -> IO String
-getRowFromFile filename index = do 
+getRowFromFile filename i = do
+    let index = convertIndex i
     exist <- doesFileExist filename
     if not exist then return "empty"
         else do
@@ -547,7 +550,6 @@ getRowFromFile filename index = do
             
             let outPut = searchList contentF index
             return outPut
-
 
 invokeTdeeAddWin :: IO()
 invokeTdeeAddWin = do
@@ -577,25 +579,22 @@ invokeTdeeAddWin = do
         patient <- Gtk.entryGetText patientEntry
         let filename = filter ( /= ' ') $ glibToString patient ++ ".txt"
 
-        weight <- getRowFromFile filename "6"
-        height <- getRowFromFile filename "5"
-        age <- getRowFromFile filename "3"
-        sex <- getRowFromFile filename "4"
-
-    
+        weight <- getRowFromFile filename "weight"
+        height <- getRowFromFile filename "height"
+        age <- getRowFromFile filename "age"
+        sex <- getRowFromFile filename "gender"
         freq <- Gtk.entryGetText workOutEntry
-
         let tdeeVal = round $ tdeeCalculator (read weight :: Double) (read height :: Double) (read age :: Double) sex (read $ glibToString freq :: Int)
         let append = "\n9" ++ show tdeeVal
+
+        content <- getRowFromFile filename "tdee"
         
-        journal <- openFile filename ReadMode
-        hasLine <- hIsEOF journal
-        content <- if not hasLine
-                        then hGetContents journal
-                    else return "empty"
-        delete filename
-        writeFile filename (content ++ append)
-        hClose journal
+        if content == "This info doesn't exist in this system." then do
+            editFile filename append
+        else do
+            replaceInFile filename "tdee" (show tdeeVal)
+
+
         
         #destroy win
     #showAll win
@@ -678,7 +677,6 @@ invokeTdeeCalcWin= do
         
     #showAll win
         
-
 invokeDeleteWin :: IO()
 invokeDeleteWin = do
     win <- new Gtk.Window [#title := "Journal System"]
@@ -704,6 +702,104 @@ invokeDeleteWin = do
         delete filename
         #destroy win
     #showAll win
+
+invokeChangeWin :: IO()
+invokeChangeWin = do
+    win <- new Gtk.Window [#title := "Journal System"]
+    #resize win 320 240
+    #setPosition win Gtk.WindowPositionCenter 
+
+    vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
+    #add win vertBox
+
+    label1 <- new Gtk.Label [#label := "Patient name"]
+    #add vertBox label1
+
+    patientEntry <- Gtk.entryNew 
+    #add vertBox patientEntry
+
+    label2 <- new Gtk.Label [#label := "Info"]
+    #add vertBox label2
+
+    infoEntry <- Gtk.entryNew 
+    #add vertBox infoEntry
+
+    label3 <- new Gtk.Label [#label := "New info"]
+    #add vertBox label3
+
+    newEntry <- Gtk.entryNew 
+    #add vertBox newEntry
+
+    btn <- new Gtk.Button [#label := "Change info"]
+    #add vertBox btn
+
+    on btn #clicked $ do
+        pat <- Gtk.entryGetText patientEntry
+        info <- Gtk.entryGetText infoEntry
+        infoNew <- Gtk.entryGetText newEntry
+
+        let filename = filter ( /= ' ') $ glibToString pat ++ ".txt"
+
+        if glibToString info == "height" then do
+            let height = read (glibToString infoNew) :: Double
+            weight <- getRowFromFile filename "weight"
+            let weight' = read weight :: Double
+            let bmiCalc = bmi weight' height 
+            replaceInFile filename "bmi" (show bmiCalc)
+            replaceInFile filename (glibToString info) (glibToString infoNew) 
+        else if glibToString info == "weight" then do
+            height <- getRowFromFile filename "height"
+            let height' = read height :: Double
+            let weight = read (glibToString infoNew) :: Double
+            let bmiCalc = bmi weight height'
+            replaceInFile filename "bmi" (show bmiCalc)
+            replaceInFile filename (glibToString info) (glibToString infoNew) 
+        else do
+            replaceInFile filename (glibToString info) (glibToString infoNew) 
+        
+            
+
+        
+        #destroy win
+
+    #showAll win
+
+
+replaceInFile :: String -> String -> String -> IO()
+replaceInFile filename info infoNew = do
+    journal <- openFile filename ReadMode 
+    hasLine <- hIsEOF journal
+    content <- if not hasLine
+                    then hGetContents journal
+                else return "empty"
+    let contentF = lines content
+    let index = convertIndex info
+    let info' = index ++ infoNew
+    let newContent = unlines $ replaceElement info' contentF
+
+    delete filename
+    writeFile filename newContent
+    hClose journal
+
+
+replaceElement :: String -> [String] -> [String]
+replaceElement _ [] = []
+replaceElement s (x:xs) | head x == head s = s : replaceElement s xs
+                        | otherwise = x : replaceElement s xs
+
+
+
+editFile :: String -> String -> IO()
+editFile filename append = do
+    journal <- openFile filename ReadMode
+    hasLine <- hIsEOF journal
+    content <- if not hasLine
+                    then hGetContents journal
+                else return "empty"
+    delete filename
+    writeFile filename (content ++ append)
+    hClose journal
+
 
 delete :: String -> IO ()
 delete file = do
