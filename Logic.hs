@@ -1,4 +1,24 @@
 module Logic where
+import Test.HUnit
+
+
+donatetest1 = TestCase $ assertEqual "donate 'A' 'A'" True (donate "A" "A") 
+donatetest2 = TestCase $ assertEqual "donate 'B' 'A'" False (donate "B" "A")
+bmitest1 = TestCase $ assertEqual "bmi 80 1.90" (22,"Normal weight") (bmi 80 1.90)
+bmitest2 = TestCase $ assertEqual "bmi 30 1.40" (15,"Underweight") (bmi 30 1.40)
+tdeetest1 = TestCase $ assertEqual "tdeeCalculator 80 1.90 21 'Male' 7" 3303.125 (tdeeCalculator 80 1.90 21 "Male" 7)
+tdeetest2 = TestCase $ assertEqual "tdeecalculator 50 1.60 40 'Female' 0" 1366.8 (tdeeCalculator 50 1.60 40 "Female" 0)
+searchListtest1 = TestCase $ assertEqual "searchList ['1hi','2hello','3hey'] '3'" "hey" (searchList ["1hi","2hello","3hey"] "3")
+searchListtest2 = TestCase $ assertEqual "searchList [] '6'" "This info doesn't exist in this system." (searchList [] "6")
+formatFiletest1 = TestCase $ assertEqual "formatFile ['1Tommy', '2Komo', '321', '4Male']" ["First name: Tommy","Last name: Komo","Age: 21","Gender: Male"] (formatFile ["1Tommy", "2Komo", "321", "4Male"])
+formatFiletest2 = TestCase $ assertEqual "formatFile []" [] (formatFile [])
+convertIndextest1 = TestCase $ assertEqual "convertIndex 'gender'" "4" (convertIndex "gender")
+convertIndextest2 = TestCase $ assertEqual "convertIndex 'favorite jeans'" "null" (convertIndex "favorite jeans")
+replaceElementtest1 = TestCase $ assertEqual "replaceElement '2byxor' ['1strumpor', '2jeans','3trojor']" ["1strumpor","2byxor","3trojor"] (replaceElement "2byxor" ["1strumpor", "2jeans", "3trojor"])
+replaceElementtest2 = TestCase $ assertEqual "replaceElement '2byxor' []" [] (replaceElement "2byxor" [])
+
+performTests = runTestTT $ TestList [donatetest1, donatetest2, bmitest1, bmitest2, tdeetest1, tdeetest2, searchListtest1, searchListtest2, formatFiletest1, formatFiletest2, convertIndextest1, convertIndextest2, replaceElementtest1, replaceElementtest2]
+
 
 
 {-  donate bloodtype1 bloodtype2
@@ -80,6 +100,7 @@ formatFile (x:xs) | head x == '1' = ("First name: " ++ drop 1 x) : formatFile xs
                   | head x == '7' = ("BloodType: " ++ drop 1 x) : formatFile xs
                   | head x == '8' = ("BMI: " ++ drop 1 x) : formatFile xs
                   | head x == '9' = ("Total daily energy expenditure: " ++ drop 1 x ++ " kcal") : formatFile xs
+                  | otherwise = formatFile xs
 
 
 {-  convertIndex i
