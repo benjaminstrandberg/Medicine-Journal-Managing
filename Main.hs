@@ -5,18 +5,25 @@ module Main where
 
 import qualified GI.Gtk as Gtk 
 import Data.GI.Base
-import System.Environment
 import System.Directory
 import System.IO ( hClose, hIsEOF, openFile, hGetContents, IOMode(ReadMode, WriteMode), IOMode(WriteMode) )
 import System.Glib.UTFString
 import Logic
 
 
+--NOTE: The explanation of the functions is a lot more in depth in the documentation
+
+{-  main
+    The main function that runs the program
+    SIDE EFFECTS: Invokes all necessary widgets, initializes the gtk library, and starts the main gtk main loop, the user is asked to input a username and a password, if these are correct when the button is clicked,
+                  we enter the program
+    EXAMPLES: main == runs the program
+-}  
 main :: IO()
 main = do
     Gtk.init Nothing 
 
-    win <- new Gtk.Window[#title := "Journal System"]
+    win <- new Gtk.Window[#title := "Medinet"]
     
     #resize win 640 480
     #setPosition win Gtk.WindowPositionCenter 
@@ -24,8 +31,8 @@ main = do
     vertBox <- new Gtk.Box [#orientation := Gtk.OrientationVertical]
     #add win vertBox
 
-    msg <- new Gtk.Label [#label := "Tommys sjukstuga"]
-    #add vertBox msg
+    title <- new Gtk.Label [#label := "Medinet"]
+    #add vertBox title
 
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
     #add vertBox horBox1
@@ -59,7 +66,7 @@ main = do
         passIn <- Gtk.entryGetText passEntry
 
         if userIn == "benjamin" && passIn == "strandberg" then do invokeMenuScreen win
-        else set msg [#label := "Incorrect login credentials"]
+        else set title [#label := "Incorrect login credentials"]
         
 
     #showAll win
@@ -67,12 +74,15 @@ main = do
     Gtk.main 
 
 
-
+{-  invokeMenuScreen
+    Invokes the main menu of the program
+    SIDE EFFECTS: Invokes all necessary widgets, all features are displayed as a list of labeled buttons
+    EXAMPLES: openRecordWin == invokes the menu screen
+-}  
 invokeMenuScreen :: Gtk.Window  -> IO()
 invokeMenuScreen win = do 
     #destroy win
-    
-    menuState <- new Gtk.Window [#title := "Journal System"]
+    menuState <- new Gtk.Window [#title := "Medinet"]
 
     #resize menuState 640 480
     #setPosition menuState Gtk.WindowPositionCenter 
@@ -134,17 +144,19 @@ invokeMenuScreen win = do
 
     on changeRecord #clicked $ do
         invokeChangeWin
-    
-
     horBox1 <- new Gtk.Box [#orientation := Gtk.OrientationHorizontal]
     #add vertBox horBox1
     
     #showAll menuState
 
-
+{-  invokeQAWindow
+    Invokes the window where you are able to access specific pieces of information from a patient recor
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, the info the user searched for is displayed in the output label
+    EXAMPLES: openRecordWin == invokes the window where you have a quick access to individual pieces of information
+-}  
 invokeQAWindow :: IO()
 invokeQAWindow = do
-    qaWindow <- new Gtk.Window [#title := "Journal System"]
+    qaWindow <- new Gtk.Window [#title := "Medinet"]
 
     #resize qaWindow 320 240
     #setPosition qaWindow Gtk.WindowPositionCenter 
@@ -187,14 +199,14 @@ invokeQAWindow = do
        
     #showAll qaWindow
    
-        
-
-
+{-  invokeAddPatientWindow
+    Invokes the window where you are able to add a patient record
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, the data of the patient is gathered from the text entries and written to a textfile whose name is the name of the patient
+    EXAMPLES: invokeAddPatientWindow == invokes the window where you can add a patient to the data type
+-}  
 invokeAddPatientWindow :: IO()
 invokeAddPatientWindow = do
-    
-
-    addWindow <- new Gtk.Window [#title := "Journal System"]
+    addWindow <- new Gtk.Window [#title := "Medinet"]
 
     #resize addWindow 320 240
     #setPosition addWindow Gtk.WindowPositionCenter 
@@ -292,10 +304,14 @@ invokeAddPatientWindow = do
         #destroy addWindow
     #showAll addWindow
     
-
+{-  openRecordWin
+    Invokes the window where you are able to output an entire record
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, the record of the patient that the user inputted is outputted in a formatted way so that everything is clear
+    EXAMPLES: openRecordWin == invokes the window where you can open an entire record
+-}     
 openRecordWindow :: IO()
 openRecordWindow = do
-    openRecordWin <- new Gtk.Window [#title := "Journal System"]
+    openRecordWin <- new Gtk.Window [#title := "Medinet"]
     #resize openRecordWin 320 240
     #setPosition openRecordWin Gtk.WindowPositionCenter 
         
@@ -342,10 +358,14 @@ openRecordWindow = do
 
     #showAll openRecordWin
 
-                  
+{-  invokeBmiCalcWin
+    Invokes the window where you calculate a bmi value
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, the height and weight input from the user is used in a bmi calculation whose result is printed on the screen
+    EXAMPLES: invokeTdeeCalcWIn == invokes the window where you calculate a bmi value
+-}                   
 invokeBmiCalcWin :: IO()
 invokeBmiCalcWin = do
-    bmiCalcWin <- new Gtk.Window [#title := "Journal System"]
+    bmiCalcWin <- new Gtk.Window [#title := "Medinet"]
     #resize bmiCalcWin 320 240
     #setPosition bmiCalcWin Gtk.WindowPositionCenter 
         
@@ -387,10 +407,15 @@ invokeBmiCalcWin = do
         set label3 [#label := stringToGlib $ show bmiCalc]
 
     #showAll bmiCalcWin
-
+{-  invokeBTCalcWin
+    Invokes the window where you calculate if a blood donation is possible
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, based on what mode that is currently selected, the function either computes if a donation between two patients in the data base is possible
+                  or if a donation between to arbitrary blood types is possible. Then it prints the result on the screen
+    EXAMPLES: invokeTdeeCalcWIn == invokes the window where you calculate if a blood donation is possible or not
+-} 
 invokeBTCalcWin :: IO()
 invokeBTCalcWin = do
-    btCalcWin <- new Gtk.Window [#title := "Journal System"]
+    btCalcWin <- new Gtk.Window [#title := "Medinet"]
     #resize btCalcWin 320 240
     #setPosition btCalcWin Gtk.WindowPositionCenter 
         
@@ -437,8 +462,6 @@ invokeBTCalcWin = do
         pat2 <- Gtk.entryGetText patient2Entry
         mode <- Gtk.buttonGetLabel modeBtn
 
-        
-
         if mode == "Patient Mode" then do
             let filename = filter ( /= ' ') $ glibToString pat1 ++ ".txt"
             let filename2 = filter ( /= ' ') $ glibToString pat2 ++ ".txt"
@@ -449,9 +472,9 @@ invokeBTCalcWin = do
             if patient1 == "empty" && patient2 == "empty" then
                 set label3 [#label := "These patients are not in our records."]
             else if patient1 == "empty" then 
-                set label3 [#label := stringToGlib  $ glibToString pat1 ++ " is not in our records"]
+                set label3 [#label := stringToGlib $ glibToString pat1 ++ " is not in our records"]
             else if patient2 == "empty" then
-                set label3 [#label := stringToGlib  $ glibToString pat2 ++ " is not in our records"]
+                set label3 [#label := stringToGlib $ glibToString pat2 ++ " is not in our records"]
             else do
                 let donateResult = donate (strip patient1) (strip patient2)
                                 where strip = filter(\x -> x == 'A' || x == 'B' || x == 'O')
@@ -463,12 +486,15 @@ invokeBTCalcWin = do
             let donateResult = donate (strip $ glibToString pat1) (strip $ glibToString pat2)
                             where strip = filter(\x -> x == 'A' || x == 'B' || x == 'O')
             let print | donateResult = "Patient 1 can donate to Patient 2"
-                          | otherwise = "Patient 1 can't donate to Patient 2"
+                      | otherwise = "Patient 1 can't donate to Patient 2"
             set label3 [#label := stringToGlib print ]
     #showAll btCalcWin
 
-
-
+{-  getRowFromFile filename i
+    Gets the row from a medical record that matches i
+    SIDE EFFECTS: Converts i to an index so it's matchable in the list, converts the content of a file to a list then uses the searchList function with the index to get the correct row and then returns the row
+    EXAMPLES: getRowFromFile i == the row that matches the index of i from the file
+-} 
 getRowFromFile :: String -> String -> IO String
 getRowFromFile filename i = do
     let index = convertIndex i
@@ -484,10 +510,14 @@ getRowFromFile filename i = do
             
             let outPut = searchList contentF index
             return outPut
-
+{-  invokeTdeeAddWin
+    Invokes the window where you add a TDEE value to a record
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, the TDEE value is calculated and inserted to the record
+    EXAMPLES: invokeTdeeCalcWIn == invokes the window where you calculate a TDEE value
+-}  
 invokeTdeeAddWin :: IO()
 invokeTdeeAddWin = do
-    win <- new Gtk.Window [#title := "Journal System"]
+    win <- new Gtk.Window [#title := "Medinet"]
     #resize win 320 240
     #setPosition win Gtk.WindowPositionCenter 
 
@@ -532,10 +562,14 @@ invokeTdeeAddWin = do
         
         #destroy win
     #showAll win
-
+{-  invokeTdeeCalcWin
+    Invokes the window where you calculate a TDEE value
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, the TDEE value is calculated and printed by the inputs the user has entered
+    EXAMPLES: invokeTdeeCalcWIn == invokes the window where you calculate a TDEE value
+-}   
 invokeTdeeCalcWin :: IO()
 invokeTdeeCalcWin= do
-    win <- new Gtk.Window [#title := "Journal System"]
+    win <- new Gtk.Window [#title := "Medinet"]
 
     #resize win 320 240
     #setPosition win Gtk.WindowPositionCenter 
@@ -610,10 +644,14 @@ invokeTdeeCalcWin= do
 
         
     #showAll win
-        
+{-  invokeDeleteWin
+    Invokes the window where you delete a record
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, the file in the input is deleted
+    EXAMPLES: invokeDeleteWin == invokes the window where you delete a file
+-}       
 invokeDeleteWin :: IO()
 invokeDeleteWin = do
-    win <- new Gtk.Window [#title := "Journal System"]
+    win <- new Gtk.Window [#title := "Medinet"]
     #resize win 320 240
     #setPosition win Gtk.WindowPositionCenter 
 
@@ -644,9 +682,14 @@ invokeDeleteWin = do
             set label2 [#label := "File couldn't be found"]
     #showAll win
 
+{-  invokeChangeWin
+    Invokes the window where you edit a record
+    SIDE EFFECTS: Invokes all necessary widgets, when the button is clicked, input is gathered from the text entries. The filename is derived from the patient entry. Then the info is replaced into the text file
+    EXAMPLES: invokeChangeWin == invokes the window where you edit a record and add that into a text file
+-}
 invokeChangeWin :: IO()
 invokeChangeWin = do
-    win <- new Gtk.Window [#title := "Journal System"]
+    win <- new Gtk.Window [#title := "Medinet"]
     #resize win 320 240
     #setPosition win Gtk.WindowPositionCenter 
 
@@ -698,21 +741,25 @@ invokeChangeWin = do
         else do
             replaceInFile filename (glibToString info) (glibToString infoNew) 
         
-            
-
-        
         #destroy win
 
     #showAll win
 
+{-  replaceInFile filename info infoNew
+    Replaces a row in the textfile with a new one. Info signify which row to be replaced, and infoNew is the new info to be added.
+    PRE: filename must be a file that exists in the program folder
+    SIDE EFFECTS: Opens the file in readmode, checks if it's empty, in that case the function terminates, otherwise it stores the content of the file in a variable, replaces the element in the content by using auxiliary functions and a sequence of conversion, deletes the file,
+                  and writes to a new one with the same name and modified content
+    EXAMPLES: replaceInFile filename info infoNew == new file with the modified content
 
+-}
 replaceInFile :: String -> String -> String -> IO()
 replaceInFile filename info infoNew = do
     journal <- openFile filename ReadMode 
     hasLine <- hIsEOF journal
     content <- if not hasLine
                     then hGetContents journal
-                else return "empty"
+                else return()
     let contentF = lines content
     let index = convertIndex info
     let info' = index ++ infoNew
@@ -722,15 +769,21 @@ replaceInFile filename info infoNew = do
     writeFile filename newContent
     hClose journal
 
-
-
+{-  editFile filename append
+    Appends a new row of text at the bottom of a textfield
+    PRE: filename must be a file that exists in the program folder
+    SIDE EFFECTS: Opens the file in readmode, checks if it's empty, in that case the function terminates, otherwise the content is stored in a variable and the file is deleted,
+                  then a new file with the same name is created and written to with the same content plus append.
+    EXAMPLES: editFile filename append == new file with the same content plus append
+                  
+-}
 editFile :: String -> String -> IO()
 editFile filename append = do
     journal <- openFile filename ReadMode
     hasLine <- hIsEOF journal
     content <- if not hasLine
                     then hGetContents journal
-                else return "empty"
+                else return()
     delete filename
     writeFile filename (content ++ append)
     hClose journal

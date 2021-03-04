@@ -1,9 +1,9 @@
 1Tommy
 2Komo
 321
-4Male
+4Female
 51.89
 680
 7B neg
 8(22,"Normal weight")
-92258
+93230
